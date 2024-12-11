@@ -1,0 +1,147 @@
+<?php
+ob_start();
+require_once('wp-load.php');
+$xmlDoc = new DOMDocument('1.0', 'UTF-8');
+
+$productsElement = $xmlDoc->createElement('products');
+$xmlDoc->appendChild($productsElement);
+
+$prod = array(
+    'post_type'      => 'product',
+    'posts_per_page' => -1,
+);
+
+
+$products = new WP_Query($prod);
+
+if ($products->have_posts()) {
+    while ($products->have_posts()) {
+        $products->the_post();
+        $product = wc_get_product(get_the_ID());
+
+        $productElement = $xmlDoc->createElement('product');
+
+
+
+        if ($product->is_type('variable')) {
+            $variations = $product->get_available_variations();
+
+          
+                $variation_id = $variation['variation_id'];
+                $variation_product = wc_get_product($variation_id);
+
+                $productVariationElement = $xmlDoc->createElement('product');
+
+                $productIDElement = $xmlDoc->createElement('id', $product->get_id());
+                $productVariationElement->appendChild($productIDElement);
+
+                $productSKUElement = $xmlDoc->createElement('sku', $product->get_sku());
+                $productVariationElement->appendChild($productSKUElement);
+
+                $productNameElement = $xmlDoc->createElement('name', $product->get_name());
+                $productVariationElement->appendChild($productNameElement);
+
+                $productLinkElement = $xmlDoc->createElement('link', $product->get_permalink($product));
+                $productVariationElement->appendChild($productLinkElement);
+
+                $stock = $xmlDoc->createElement('stock', $product->is_in_stock);
+                $productVariationElement->appendChild($stock);
+
+                $haveshortdescription = $product->get_short_description();
+                if (!empty($haveshortdescription)) {
+                    $productShorDescriptionElement = $xmlDoc->createElement('shortdescription', $product->get_short_description());
+                    $productVariationElement->appendChild($productShorDescriptionElement);
+                }
+
+                $havedescription = $product->get_description();
+                if (!empty($havedescription)) {
+                    $productDescriptionElement = $xmlDoc->createElement('description', $product->get_description());
+                    $productVariationElement->appendChild($productDescriptionElement);
+                }
+
+                foreach ($variations as $variation) {
+
+                $varprod=$xmlDoc->createElement('variation');
+                    
+                $variation_attributes = $variation['attributes'];
+
+
+                if (isset($variation_attributes['attribute_size'])) {
+
+                    $sizeValue = $variation_attributes['attribute_size'];
+                    $sizeOptionElement = $xmlDoc->createElement('size', $sizeValue);
+                    
+                    $productVariationElement->appendChild($sizeOptionElement);
+                }
+
+
+                $active_price = floatval($variation['display_price']); 
+                $regular_price = floatval($variation['display_regular_price']); 
+                $productSalePriceElement = $xmlDoc->createElement('saleprice', $active_price);
+                $productVariationElement->appendChild($productSalePriceElement);
+
+                    $productsElement->appendChild($varprod);
+                    }
+                
+                $productsElement->appendChild($productVariationElement);
+         
+        } elseif ($product->is_type('simple')) {
+                   $productidElement = $xmlDoc->createElement('id', $product->get_id());
+        $productElement -> appendChild($productidElement);
+
+        $productskuElement = $xmlDoc->createElement('sku', $product->get_sku());
+        $productElement->appendChild($productskuElement);
+
+        $productNameElement = $xmlDoc->createElement('name', $product->get_name());
+        $productElement->appendChild($productNameElement);
+
+
+        $productLinkElement = $xmlDoc->createElement('link', $product->get_permalink($product));
+        $productElement->appendChild($productLinkElement);
+
+      
+        $stock=$xmlDoc->createElement('stock', $product->is_in_stock);
+        $productElement->appendChild($stock);
+
+        $haveshortdescription=$product->get_short_description();
+        if(!empty($haveshortdescription)){
+        $productShorDescriptionElement = $xmlDoc->createElement('shortdescription', $product->get_short_description());
+        $productElement->appendChild($productShorDescriptionElement);
+        }
+
+        $havedescription=$product->get_description();
+        if(!empty($havedescription)){
+        $productDescriptionElement = $xmlDoc->createElement('description', $product->get_description());
+        $productElement->appendChild($productDescriptionElement);
+        }
+
+
+        $havesaleprice=$product->get_sale_price();
+        if(!empty($havesaleprice)){
+        $productSalePriceElement = $xmlDoc->createElement('saleprice', $product->get_sale_price());
+        $productElement->appendchild($productSalePriceElement);
+        }
+        else{
+        $productRegularPriceElement = $xmlDoc->createElement('regularprice', $product->get_regular_price());
+        $productElement->appendChild($productRegularPriceElement);
+        }
+        
+        $productQuantityElement=$xmlDoc->createElement('quantity', $product->get_stock_quantity());
+        $productElement->appendChild($productQuantityElement);
+
+
+        $productsElement->appendChild($productElement);
+    }
+        }
+
+
+    ob_end_clean();
+
+    header('Content-Type: text/xml');
+    echo $xmlDoc->saveXML();
+
+}
+
+
+
+?>
